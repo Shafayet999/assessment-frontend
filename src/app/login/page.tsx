@@ -42,8 +42,12 @@ export default function LoginPage() {
       } else {
         router.push("/dashboard");
       }
-    } catch (err: any) {
-      setError(err?.message || "Login failed. Please check credentials.");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Login failed. Please check credentials.");
+      }
     } finally {
       setLoading(false);
     }
@@ -164,8 +168,8 @@ export default function LoginPage() {
               type="button"
               onClick={() =>
                 handleLogin(
-                  "candidate@example.com",
-                  "Password@123",
+                  "candidate.test@dev.com",
+                  "password123",
                   "CANDIDATE",
                 )
               }
@@ -187,7 +191,7 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() =>
-              handleLogin("recruiter@assessment.com", "password123", "RECRUITER")
+              handleLogin("recruiter@techcorp.com", "password123", "RECRUITER")
             }
             className="group w-full p-3 bg-zinc-50/60 hover:bg-zinc-50 border border-zinc-200/70 hover:border-zinc-300 rounded-xl transition flex items-center justify-between cursor-pointer"
           >
