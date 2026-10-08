@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  /* Existing configurations */
   cacheComponents: true,
   partialPrefetching: true,
   reactCompiler: true,
@@ -12,6 +12,16 @@ const nextConfig: NextConfig = {
         as: "*.css",
       },
     },
+  },
+
+  /* Backend API Proxy (CORS-free, Clean URLs) */
+  async rewrites() {
+    return [
+      {
+        source: "/api/v1/:path*",
+        destination: "https://coding-platform-henna.vercel.app/api/v1/:path*",
+      },
+    ];
   },
 };
 
