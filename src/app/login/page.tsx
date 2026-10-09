@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchClient } from "@/lib/api";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -64,7 +65,7 @@ export default function LoginPage() {
         {/* Header */}
         <div className="text-center mb-7">
           <div className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-zinc-900 text-white mb-3 shadow-sm font-semibold tracking-wider text-base">
-            DEV
+            DA
           </div>
           <h1 className="text-xl font-semibold tracking-tight text-zinc-900">
             Welcome back
@@ -131,8 +132,19 @@ export default function LoginPage() {
           </button>
         </form>
 
+        {/* Register Link */}
+        <p className="text-xs text-zinc-500 text-center mt-4">
+          Don&apos;t have an account?{" "}
+          <Link
+            href="/register"
+            className="font-semibold text-zinc-900 hover:underline"
+          >
+            Sign Up
+          </Link>
+        </p>
+
         {/* Divider */}
-        <div className="relative my-7">
+        <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-zinc-200/80" />
           </div>
@@ -150,12 +162,18 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() =>
-                handleLogin("admin@assessment.com", "password123", "ADMIN")
+                handleLogin(
+                  "admin@assessment.com",
+                  "password123",
+                  "ADMIN",
+                )
               }
               className="group p-3 bg-zinc-50/60 hover:bg-zinc-50 border border-zinc-200/70 hover:border-zinc-300 rounded-xl text-left transition flex flex-col justify-between cursor-pointer"
             >
               <div className="flex items-center justify-between w-full">
-                <span className="text-xs font-semibold text-zinc-800">Admin</span>
+                <span className="text-xs font-semibold text-zinc-800">
+                  Admin
+                </span>
                 <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
               </div>
               <span className="text-[11px] text-zinc-400 group-hover:text-zinc-700 font-medium mt-1">
@@ -191,7 +209,11 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() =>
-              handleLogin("recruiter@techcorp.com", "password123", "RECRUITER")
+              handleLogin(
+                "recruiter@techcorp.com",
+                "password123",
+                "RECRUITER",
+              )
             }
             className="group w-full p-3 bg-zinc-50/60 hover:bg-zinc-50 border border-zinc-200/70 hover:border-zinc-300 rounded-xl transition flex items-center justify-between cursor-pointer"
           >
@@ -205,6 +227,16 @@ export default function LoginPage() {
               Demo Login →
             </span>
           </button>
+        </div>
+
+        {/* Back to Home Link */}
+        <div className="mt-6 text-center">
+          <Link
+            href="/"
+            className="text-xs text-zinc-500 hover:text-zinc-900 transition-colors font-medium inline-flex items-center gap-1.5"
+          >
+            <span>←</span> Back to Home
+          </Link>
         </div>
       </div>
     </div>

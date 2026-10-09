@@ -25,12 +25,7 @@ export default function ContactPage() {
           <Link href="/" className="text-xs font-medium text-zinc-500 hover:text-zinc-900 transition">
             ← Back to Home
           </Link>
-          <Link
-            href="/pricing"
-            className="text-xs font-medium text-zinc-500 hover:text-zinc-900 transition"
-          >
-            Explore Pricing →
-          </Link>
+         
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">

@@ -6,12 +6,29 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { fetchClient } from "@/lib/api";
 
+interface SubmissionItem {
+  id?: string;
+  questionId?: string;
+  answerText: string;
+  obtainedMarks?: number;
+  isEvaluated?: boolean;
+  isCorrect?: boolean;
+  question?: {
+    id?: string;
+    title: string;
+    type?: string;
+    marks?: number;
+    correctAnswer?: string;
+  };
+}
+
 interface SubmissionResult {
   id: string;
-  score: number;
+  totalScore?: number;
+  score?: number;
   totalMarks?: number;
   passMarks?: number;
-  status: string; // "PASSED" | "FAILED" | "PENDING"
+  status: string;
   submittedAt?: string;
   createdAt?: string;
   assessment?: {
@@ -20,16 +37,8 @@ interface SubmissionResult {
     totalMarks: number;
     passMarks: number;
   };
-  answers?: Array<{
-    questionId: string;
-    answerText: string;
-    isCorrect?: boolean;
-    marksObtained?: number;
-    question?: {
-      title: string;
-      correctAnswer?: string;
-    };
-  }>;
+  submissions?: SubmissionItem[];
+  answers?: SubmissionItem[];
 }
 
 function ResultsContent() {
@@ -38,7 +47,7 @@ function ResultsContent() {
   const submissionId = searchParams.get("submissionId");
 
   const [result, setResult] = useState<SubmissionResult | null>(null);
-  const [history, setHistory] = useState<any[]>([]);
+  const [, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -51,14 +60,20 @@ function ResultsContent() {
         if (submissionId) {
           // নির্দিষ্ট একটি সাবমিশনের পূর্ণাঙ্গ রেজাল্ট ফেচ করা
           const res = await fetchClient(`/submissions/results/${submissionId}`);
-          setResult(res?.data || res);
+          const payload = res?.data?.data || res?.data || res;
+          setResult(payload);
         } else {
-          // পূর্বে দেওয়া সব পরীক্ষার তালিকা আনা
+          // পূর্বে দেওয়া সব পরীক্ষার তালিকা আনা
           const res = await fetchClient("/submissions/my-assessments");
-          const list = res?.data || [];
+          const list = res?.data?.data || res?.data || [];
           setHistory(list);
-          // প্রথম কম্প্লিটেড রেজাল্টটি ডিফল্ট ভিউতে দেখানো
-          const completed = list.find((item: any) => item.status === "COMPLETED" || item.score !== undefined);
+          const completed = list.find(
+            (item: any) =>
+              item.status === "SUBMITTED" ||
+              item.status === "COMPLETED" ||
+              item.totalScore !== undefined ||
+              item.score !== undefined
+          );
           if (completed) {
             setResult(completed);
           }
@@ -82,11 +97,54 @@ function ResultsContent() {
     );
   }
 
-  const totalMarks = result?.assessment?.totalMarks || result?.totalMarks || 50;
-  const passMarks = result?.assessment?.passMarks || result?.passMarks || 20;
-  const score = result?.score || 0;
-  const isPassed = score >= passMarks || result?.status === "PASSED";
-  const percentage = Math.round((score / totalMarks) * 100);
+  // মার্কস ও স্কোর গণনা
+  const totalMarks =
+    result?.assessment?.totalMarks ?? result?.totalMarks ?? 10;
+  const passMarks =
+    result?.assessment?.passMarks ?? result?.passMarks ?? 4;
+
+  const score =
+    result?.totalScore ??
+    result?.score ??
+    (result?.submissions
+      ? result.submissions.reduce(
+          (acc, cur) => acc + (cur.obtainedMarks || 0),
+          0
+        )
+      : 0);
+
+  // পাস মার্ক যদি ভুলবশত টোটাল মার্কসের বেশি দেওয়া থাকে, তবে ১০০% বা আনুপাতিক হারে পাস হিসেব করা
+  const isPassed =
+    result?.status === "PASSED" ||
+    (passMarks <= totalMarks ? score >= passMarks : score === totalMarks || score >= Math.ceil(totalMarks * 0.4));
+
+  const percentage =
+    totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 0;
+
+  // প্রশ্ন ও উত্তরের তালিকা প্রসেস করা
+  const reviewList = (result?.submissions || result?.answers || []).map(
+    (item, index) => {
+      const title = item.question?.title || `Question ${index + 1}`;
+      const answer = item.answerText || "";
+      const marksObtained = item.obtainedMarks ?? 0;
+      const questionMarks = item.question?.marks ?? 10;
+      const isCorrect =
+        item.isCorrect ??
+        (marksObtained > 0 ||
+          (item.question?.correctAnswer &&
+            item.question.correctAnswer.trim().toLowerCase() ===
+              answer.trim().toLowerCase()));
+
+      return {
+        id: item.id || item.questionId || `ans-${index}`,
+        title,
+        answerText: answer,
+        marksObtained,
+        questionMarks,
+        isCorrect,
+      };
+    }
+  );
 
   return (
     <div className="max-w-4xl mx-auto space-y-7 pb-16">
@@ -154,7 +212,9 @@ function ResultsContent() {
             <div className="pt-6 space-y-2">
               <div className="flex justify-between text-xs font-medium">
                 <span className="text-zinc-600">Score Requirement</span>
-                <span className="text-zinc-400">Pass Mark: {passMarks} Marks</span>
+                <span className="text-zinc-400">
+                  Pass Mark: {passMarks} Marks
+                </span>
               </div>
               <div className="w-full h-2.5 bg-zinc-100 rounded-full overflow-hidden">
                 <div
@@ -167,28 +227,32 @@ function ResultsContent() {
             </div>
           </div>
 
-          {/* Answer Breakdown (If present) */}
-          {result?.answers && result.answers.length > 0 && (
+          {/* Question Breakdown */}
+          {reviewList.length > 0 && (
             <div className="bg-white border border-zinc-200/80 rounded-2xl p-6 shadow-sm space-y-4">
               <h3 className="text-sm font-semibold text-zinc-900">
                 Question Performance Review
               </h3>
               <div className="space-y-3">
-                {result.answers.map((item, index) => (
+                {reviewList.map((item, index) => (
                   <div
-                    key={item.questionId || `ans-${index}`}
+                    key={item.id || `ans-${index}`}
                     className="p-4 rounded-xl border border-zinc-200/60 bg-zinc-50/40 space-y-1.5"
                   >
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-medium text-zinc-800">
-                        {item.question?.title || `Question ${index + 1}`}
+                        {item.title}
                       </p>
                       <span
                         className={`text-[11px] font-semibold ${
-                          item.isCorrect ? "text-emerald-600" : "text-red-500"
+                          item.isCorrect
+                            ? "text-emerald-600"
+                            : "text-red-500"
                         }`}
                       >
-                        {item.isCorrect ? "Correct (+ marks)" : "Incorrect"}
+                        {item.isCorrect
+                          ? `Correct (+${item.marksObtained} marks)`
+                          : `Incorrect (${item.marksObtained} marks)`}
                       </span>
                     </div>
                     <p className="text-xs text-zinc-500">
